@@ -1,0 +1,175 @@
+컴포넌트 간 통신과 유효 범위
+
+각 컴포넌트의 유효 범위가 독립적이기 때문에 다른 컴포넌트의 값을 직접적으로 참조할 수 없다. 즉, 뷰에서 미리 정의해 놓은 데이터 전달 방식에 따라 일관된 구조로 애플리케이션을 작성하게 된다. 그러므로 개발자 개개인의 스타일대로 구성되지 않고, 애플리케이션이 모두 동일한 데이터 흐름을 갖는다.
+
+ 
+
+상하위 컴포넌트 관계(가장 기본적인 데이터 전달 방법)
+
+지역 또는 전역 컴포넌트로 등록하면 등록된 컴포넌트는 자연스럽게 하위 컴포넌트가 된다. 그리고 하위 컴포넌트를 등록한 인스턴스는 상위 컴포넌트(부모 컴포넌트)가 된다.
+
+ 
+
+데이터를 전달하는 기본구조
+
+상위에서 하위 : props속성 전달
+
+하위에서 상위 : 이벤트만 전달 가능
+
+ 
+
+상위에서 하위 컴포넌트로 데이터 전달하기
+
+-props 속성 사용
+
+//하위 컴포넌트의 props 속성 정의 방식
+Vue.component('child-component' , {
+   props : ['props 속성 이름'],
+});
+ - 다음, 상위 컴포넌트의 HTML코드에 등록된 child-component 컴포넌트 태그에 v-bind속성을 추가한다.
+
+<child-component v-bind:props 속성이름="상위 컴포넌트의 data속성"></child-component>
+ 예제
+
+<body>
+    <div id="app">
+      <!--4. HTML에 컴포넌트 태그를 추가한다.
+      태그의 v-bind속성을 보면, 상위컴포넌트(인스턴스)의 message속성 값을 하위 컴포넌트의 propsdata로 전달한다.-->
+      <child-component v-bind:propsdata="message"></child-component>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
+    <script>
+      //2.Vue.component()를 이용하여 하위 컴포넌트인 child-component를 등록한다.
+      //3.childComponent의 내용에 props 속성으로 propsdata를 정의한다.
+      //5.child-component template속성에  정의된 내용이 화면상에 출력된다.
+      Vue.component('child-component', {
+        props : ['propsdata'],
+        template : '<p>{{propsdata}}</p>',
+      });
+      //1.new Vue()로 인스턴스를 하나 생성한다.
+      new Vue({
+        el:'#app',
+        data: {
+          message : 'Hello Vue! passed from Parent Component'
+        }
+      });
+    </script>
+
+  </body>
+ ★컴포넌트를 등록함과 동시에 뷰 인스턴스 자체가 상위컴포넌트가 된다.
+
+
+-인스턴스에 새로운 컴포넌트를 등록하면 기존에 있는 컴포넌트는 상위 컴포넌트(부모)가 되고, 새로 등록된 컴포넌트는 하위(자식)컴포넌트가 된다. 그리고 새 컴포넌트를 등록한 인스턴스를 최상위 컴포넌트(root component)라고 부른다. 
+
+​
+
+하위에서 상위 컴포넌트로 이벤트 전달하기
+
+이벤트를 발생시켜(event emit) 상위 컴포넌트에 신호를 보낸다. 하위 컴포넌트에서 특정 이벤트가 발생하면 상위 컴포넌트에서 해당 이벤트를 수신하여 상위 컴포넌트의 메소드를 호출한다.
+
+​
+
+//이벤트 발생
+this.$emit('이벤트명');
+
+//이벤트 수신
+<child-component v-on:이벤트명="상위 컴포넌트의 메소드명"></child-component>
+   <body>
+    <div id="app">
+      <child-component v-on:show-log="printText"></child-component>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
+    <script>
+      Vue.component('child-component', {
+        //show버튼을 클릭하면 클릭 이벤트 v-on:click="showLog"에 따라 showLog()메소드가 실행된다.
+        template:'<button v-on:click="showLog">show</button>',
+        methods : {
+          showLog: function() {
+            //this.$emit('show-log')가 실행되면서 show-log 이벤트가 발생한다.
+            this.$emit('show-log');
+          }
+        }
+      });
+
+      var app = new Vue({
+        el:'#app',
+        data:{
+          message:'Hello Vue! passed from Parent Component'
+        },
+        methods: {
+          //show-log 이벤트는 <child-component>에 정의한 v-on:show-log에 전달되고,
+          //v-on:show-log의 대상 메소드인 최상위 컴포넌트의 메소드 printText()가 실행된다.
+          printText:function() {
+            console.log("received an event");
+          }
+        }
+      });
+    </script>
+
+  </body>
+ 같은 레벨의 컴포넌트 간 통신
+
+-같은 상위 컴포넌트를 가지는 2개의 하위 컴포넌트
+
+-뷰는 상위에서 하위로만 데이터를 전달해야 하는 기본적인 통신 규칙을 따르기 때문에 바로 옆 컴포넌트에 값을 전달하려면 하위에서 공통 상위 컴포넌트로 이벤트를 전달한 후 공통 상위 컴포넌트에서 2개의 하위 컴포넌트에 props를 내려 보내야 한다.
+
+-이런 통신 구조는 상위 컴포넌트가 필요 없음에도 불구하고 같은 레벨 간에 통신하기 위해 강제로 상위 컴포넌트를 두어야하는 불편함이 있다.
+
+​
+
+관계 없는 컴포넌트 간 통신 - 이벤트 버스
+
+개발자가 지정한 2개의 컴포넌트 간에 데이터를 주고받을 수 있는 방법이다. 상위-하위 관계를 유지하고 있지 않아도 데이터를 한컴포넌트에서 다른 컴포넌트로 전달할 수 있다.
+
+​
+
+-이벤트버스를 구현하려면 애플리케이션 로직을 담는 인스턴스와는 별개로 새로운 인스턴스 1개를 더 생성하고, 새 인스턴스를 이용하여 이벤트를 보내고 받는다.
+
+//이벤트 버스를 위한 추가 인스턴스 1개 생성
+var eventBus = new Vue();
+
+//이벤트를 보내는 컴포넌트
+methods : {
+   메소드명 : function() {
+      eventbus.$emit('이벤트명', 데이터);
+   }
+}
+
+//이벤트를 받는 컴포넌트
+methods : {
+   created : function() {
+      eventBus.$on('이벤트명' , fucntion(데이터) {
+         ...
+      });
+   }
+}
+   <body>
+    <div id="app">
+      <child-component></child-component>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.2/dist/vue.js"></script>
+    <script>
+     //이벤트 버스로 활용할 새 인스턴스를 1개 생성
+      var eventBus = new Vue();
+      Vue.component('child-component', {
+        template:'<div>하위 컴포넌트 영역입니다.<button v-on:click="showLog">show</button></div>',
+        methods : {
+          showLog:function() {
+            eventBus.$emit('triggerEventBus', 100);
+          }
+        }
+      });
+
+      var app = new Vue({
+        el:'#app',
+        //3. 상위 컴포넌트의 created 라이플 사이클 푹에 eventBus.$on()으로 이벤트를 받는 로직을
+        //선언한다. 발생한 이벤트 triggerEventBus를 수신할 때 앞에서 전달된 인자 값 100이 콘솔에 출력된다.
+        created : function() {
+          eventBus.$on('triggerEventBus', function(value) {
+            console.log("이벤트를 전달받음. 전달받은 값:", value);
+          });
+        }
+      });
+    </script>
+
+  </body>
